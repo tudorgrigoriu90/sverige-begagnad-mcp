@@ -24,18 +24,24 @@ mcp = FastMCP("sverige-begagnad")
 @mcp.tool(
     title="Search Blocket",
     description=(
-        "Search Blocket.se for second-hand listings. Regional location filter only "
-        "(no precise radius) — defaults to Kronoberg + bordering counties, covering "
-        "Växjö and Älmhult. Use list_blocket_categories() first if you want to filter "
-        "by category."
+        "Search Blocket.se for second-hand listings. The location filter is REGIONAL "
+        "(län), not a precise km radius. Pass `locations` (region names from "
+        "list_blocket_locations()) to narrow the search; if omitted it uses the "
+        "BLOCKET_LOCATIONS env default, or all of Sweden if that is unset. Each result "
+        "includes the ad's text location plus coordinates/distance so you can apply a "
+        "precise 'within X min drive' filter yourself. Use list_blocket_categories() "
+        "first if you want to filter by category."
     ),
 )
 async def search_blocket(
     query: str,
     category: Optional[str] = None,
+    locations: Optional[list[str]] = None,
     max_pages: int = 2,
 ) -> dict[str, Any]:
-    return await blocket_client.search_blocket(query=query, category=category, max_pages=max_pages)
+    return await blocket_client.search_blocket(
+        query=query, category=category, locations=locations, max_pages=max_pages
+    )
 
 
 @mcp.tool(
@@ -44,6 +50,14 @@ async def search_blocket(
 )
 def list_blocket_categories() -> dict[str, Any]:
     return {"categories": blocket_client.list_categories()}
+
+
+@mcp.tool(
+    title="List Blocket regions",
+    description="List valid region (län) names to pass into search_blocket()'s `locations` argument.",
+)
+def list_blocket_locations() -> dict[str, Any]:
+    return {"locations": blocket_client.list_locations()}
 
 
 @mcp.tool(
@@ -59,9 +73,14 @@ async def search_tradera(
     category_id: Optional[int] = None,
     price_min: Optional[int] = None,
     price_max: Optional[int] = None,
+    county_id: Optional[int] = None,
 ) -> dict[str, Any]:
     return await tradera_client.search_tradera(
-        query=query, category_id=category_id, price_min=price_min, price_max=price_max
+        query=query,
+        category_id=category_id,
+        price_min=price_min,
+        price_max=price_max,
+        county_id=county_id,
     )
 
 
@@ -71,6 +90,17 @@ async def search_tradera(
 )
 async def list_tradera_categories() -> dict[str, Any]:
     return await tradera_client.get_categories()
+
+
+@mcp.tool(
+    title="List Tradera counties",
+    description=(
+        "Fetch Tradera's county list (id -> name) for search_tradera()'s optional "
+        "`county_id` filter. Tradera is national with shipping, so this is rarely needed."
+    ),
+)
+async def list_tradera_counties() -> dict[str, Any]:
+    return await tradera_client.get_counties()
 
 
 @mcp.tool(
@@ -101,11 +131,14 @@ async def search_facebook_marketplace(
 async def search_all(
     query: str,
     blocket_category: Optional[str] = None,
+    blocket_locations: Optional[list[str]] = None,
     tradera_category_id: Optional[int] = None,
     price_min: Optional[int] = None,
     price_max: Optional[int] = None,
 ) -> dict[str, Any]:
-    blocket_res = await blocket_client.search_blocket(query=query, category=blocket_category)
+    blocket_res = await blocket_client.search_blocket(
+        query=query, category=blocket_category, locations=blocket_locations
+    )
     tradera_res = await tradera_client.search_tradera(
         query=query, category_id=tradera_category_id, price_min=price_min, price_max=price_max
     )

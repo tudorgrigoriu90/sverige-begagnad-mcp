@@ -1,117 +1,82 @@
 """
-Client for Tradera's OFFICIAL SOAP v3 API.
+Client for Tradera's OFFICIAL REST API (v4).
 
 Setup required before this works:
-1. Register at https://api.tradera.com/ (Tradera Developer Program)
+1. Register at https://api.tradera.com/register (Tradera Developer Program)
 2. Accept the Terms of Use + Logo Terms of Use
-3. You'll receive an App ID (numeric, e.g. 6393) and an App Key (a GUID secret)
+3. Create an application to get an App ID (numeric, e.g. 6393) and an App Key (GUID)
 4. Put them in your .env file as TRADERA_APP_ID / TRADERA_APP_KEY (see .env.example)
 
-This module has been validated live against Tradera's current WSDL:
-  - Search       -> searchservice.asmx  (SearchAdvanced / Search)
-  - GetCategories -> publicservice.asmx  (categories live on the PUBLIC service)
-Both services require BOTH an AuthenticationHeader and a ConfigurationHeader.
+This uses the v4 REST API (https://api.tradera.com/v4), the same API surface
+that Tradera's own AI plugin (github.com/tradera/ai-marketplace) is built on.
+It supersedes the older SOAP v3 endpoints — auth is a pair of request headers
+(X-App-Id / X-App-Key), responses are plain JSON, and no upper-price sentinel
+trick is needed (omitting a filter simply means "no bound").
 
-If field names ever drift, run `python -m src.tradera_client` (see bottom of
-file) to sanity-check the call, and inspect the schema at
-https://api.tradera.com/v3/searchservice.asmx?WSDL
+Endpoints used:
+  - POST /v4/search/advanced   full-text search with price/category/county filters
+  - GET  /v4/categories        category tree
+  - GET  /v4/reference-data/counties   county id -> name (for county_id filtering)
+
+Validated live against the current v4 API. If the shape ever drifts, the raw
+OpenAPI spec is at https://api.tradera.com/openapi.json
 """
 from __future__ import annotations
 
 import os
 from typing import Any
 
-from zeep import Client
-from zeep.helpers import serialize_object
+import httpx
 
-SEARCH_WSDL = "https://api.tradera.com/v3/searchservice.asmx?WSDL"
-PUBLIC_WSDL = "https://api.tradera.com/v3/publicservice.asmx?WSDL"
-
-# Tradera's PriceMaximum filter is an absolute cap: sending 0 means
-# "max price 0 SEK", which matches nothing. When the caller wants no upper
-# bound we send this sentinel instead (well within xsd:int / int32 range).
-_NO_PRICE_MAX = 2_000_000_000
-
-_search_client: Client | None = None
-_public_client: Client | None = None
+BASE_URL = "https://api.tradera.com/v4"
+_TIMEOUT = httpx.Timeout(30.0)
 
 
-def _get_credentials() -> tuple[int, str]:
+def _get_credentials() -> tuple[str, str]:
     app_id = os.environ.get("TRADERA_APP_ID")
     app_key = os.environ.get("TRADERA_APP_KEY")
     if not app_id or not app_key:
         raise RuntimeError(
             "Missing TRADERA_APP_ID / TRADERA_APP_KEY environment variables. "
-            "Register at https://api.tradera.com/ and set them in your .env "
-            "or Claude Desktop MCP config."
+            "Register at https://api.tradera.com/register and set them in your "
+            ".env or Claude Desktop MCP config."
         )
-    try:
-        app_id_int = int(app_id)
-    except ValueError as exc:
-        raise RuntimeError(
-            f"TRADERA_APP_ID must be a numeric App ID (e.g. 6393), got {app_id!r}."
-        ) from exc
-    return app_id_int, app_key
+    return app_id, app_key
 
 
-def _search_soap_client() -> Client:
-    global _search_client
-    if _search_client is None:
-        _search_client = Client(SEARCH_WSDL)
-    return _search_client
-
-
-def _public_soap_client() -> Client:
-    global _public_client
-    if _public_client is None:
-        _public_client = Client(PUBLIC_WSDL)
-    return _public_client
-
-
-def _headers(client: Client) -> list[Any]:
-    """Both Tradera services require an Authentication AND a Configuration header."""
+def _auth_headers() -> dict[str, str]:
     app_id, app_key = _get_credentials()
-    auth_type = client.get_element("ns0:AuthenticationHeader")
-    conf_type = client.get_element("ns0:ConfigurationHeader")
-    auth = auth_type(AppId=app_id, AppKey=app_key)
-    conf = conf_type(Sandbox=0, MaxResultAge=0)
-    return [auth, conf]
+    return {"X-App-Id": app_id, "X-App-Key": app_key}
 
 
 def _first_image_url(image_links: Any) -> str | None:
-    """Pull a usable image URL out of the ImageLinks/ArrayOfImageLink structure."""
-    if not isinstance(image_links, dict):
+    """Pick a usable image URL out of the imageLinks array."""
+    if not isinstance(image_links, list) or not image_links:
         return None
-    links = image_links.get("ImageLink") or []
-    if isinstance(links, dict):
-        links = [links]
-    if not links:
-        return None
-    # Prefer a normal-sized image, else fall back to the first one.
-    for link in links:
-        if isinstance(link, dict) and link.get("Format") == "normal":
-            return link.get("Url")
-    first = links[0]
-    return first.get("Url") if isinstance(first, dict) else None
+    for link in image_links:
+        if isinstance(link, dict) and link.get("format") == "normal":
+            return link.get("url")
+    first = image_links[0]
+    return first.get("url") if isinstance(first, dict) else None
 
 
 def _normalize_item(raw: dict[str, Any]) -> dict[str, Any]:
-    """Normalize a Tradera SearchItem into the common shape shared with Blocket."""
-    item_id = raw.get("Id") or raw.get("ItemId")
+    """Normalize a Tradera v4 search item into the common shape shared with Blocket."""
+    item_id = raw.get("id")
     return {
         "source": "tradera",
         "id": item_id,
-        "title": raw.get("ShortDescription") or raw.get("LongDescription"),
+        "title": raw.get("shortDescription") or raw.get("longDescription"),
         # Buy-It-Now if present, otherwise the current/next bid for auctions.
-        "price_sek": raw.get("BuyItNowPrice") or raw.get("MaxBid") or raw.get("NextBid"),
-        "item_type": raw.get("ItemType"),  # "Auction", "BuyItNow", etc.
-        "bid_count": raw.get("BidCount"),
-        "location": None,  # Tradera search results don't include seller location
-        "url": raw.get("ItemUrl") or (f"https://www.tradera.com/item/{item_id}" if item_id else None),
-        "image_url": raw.get("ThumbnailLink") or _first_image_url(raw.get("ImageLinks")),
-        "ends_at": str(raw.get("EndDate")) if raw.get("EndDate") else None,
-        "is_ended": raw.get("IsEnded"),
-        "seller_alias": raw.get("SellerAlias"),
+        "price_sek": raw.get("buyItNowPrice") or raw.get("maxBid") or raw.get("nextBid"),
+        "item_type": raw.get("itemType"),  # "Auction", "BuyItNow", etc.
+        "bid_count": raw.get("bidCount"),
+        "location": None,  # Tradera is national/ship-anywhere; no seller location in search
+        "url": raw.get("itemUrl") or (f"https://www.tradera.com/item/{item_id}" if item_id else None),
+        "image_url": raw.get("thumbnailLink") or _first_image_url(raw.get("imageLinks")),
+        "ends_at": raw.get("endDate"),
+        "is_ended": raw.get("isEnded"),
+        "seller_alias": raw.get("sellerAlias"),
         "_raw": raw,
     }
 
@@ -121,85 +86,82 @@ async def search_tradera(
     category_id: int | None = None,
     price_min: int | None = None,
     price_max: int | None = None,
+    county_id: int | None = None,
     max_results: int = 50,
 ) -> dict[str, Any]:
     """
-    Search Tradera listings via the official SearchService (SearchAdvanced).
+    Search Tradera listings via the official v4 REST API (POST /v4/search/advanced).
 
     Args:
         query: Free-text search query.
         category_id: Optional Tradera category ID (call get_categories() to list them).
-        price_min / price_max: Optional SEK price bounds.
+        price_min / price_max: Optional SEK price bounds (omit either for no bound).
+        county_id: Optional county filter (call get_counties() to list ids). Tradera
+                   is national with shipping, so this is rarely needed.
         max_results: Cap on number of results (Tradera returns up to 50 per page).
 
     Returns:
         dict with "items": list of normalized listings, or "error" if the call failed.
     """
+    body: dict[str, Any] = {"searchWords": query, "itemsPerPage": max(1, min(max_results, 50))}
+    if category_id:
+        body["categoryId"] = category_id
+    if price_min is not None:
+        body["priceMinimum"] = price_min
+    if price_max is not None:
+        body["priceMaximum"] = price_max
+    if county_id:
+        body["countyId"] = county_id
+
     try:
-        client = _search_soap_client()
-        request_type = client.get_type("ns0:SearchAdvancedRequest")
-        request = request_type(
-            SearchWords=query,
-            CategoryId=category_id or 0,
-            SearchInDescription=False,
-            PriceMinimum=price_min or 0,
-            # 0 would mean "max price 0 SEK" (no matches); use a sentinel instead.
-            PriceMaximum=price_max if price_max else _NO_PRICE_MAX,
-            BidsMinimum=0,
-            BidsMaximum=0,
-            CountyId=0,
-            OnlyAuctionsWithBuyNow=False,
-            OnlyItemsWithThumbnail=False,
-            ItemsPerPage=max(1, min(max_results, 50)),
-            PageNumber=1,
-        )
+        async with httpx.AsyncClient(timeout=_TIMEOUT) as client:
+            resp = await client.post(
+                f"{BASE_URL}/search/advanced", headers=_auth_headers(), json=body
+            )
+            resp.raise_for_status()
+            result = resp.json()
 
-        result = client.service.SearchAdvanced(
-            request=request,
-            _soapheaders=_headers(client),
-        )
-        result = serialize_object(result)
-
-        items = (result or {}).get("Items") or []
-        if isinstance(items, dict):  # single-result edge case
-            items = [items]
-
+        items = (result or {}).get("items") or []
         normalized = [_normalize_item(i) for i in items[:max_results]]
         return {
             "items": normalized,
             "count": len(normalized),
-            "total_available": (result or {}).get("TotalNumberOfItems"),
+            "total_available": (result or {}).get("totalNumberOfItems"),
         }
 
-    except Exception as e:  # noqa: BLE001 — surface the raw error to the agent, it's actionable
+    except httpx.HTTPStatusError as e:
         return {
-            "error": str(e),
+            "error": f"HTTP {e.response.status_code}: {e.response.text[:300]}",
             "hint": (
-                "Check TRADERA_APP_ID/TRADERA_APP_KEY are set and valid, and that "
-                "the SearchAdvanced request fields above still match Tradera's "
-                "current WSDL — SOAP APIs occasionally rename fields. Fetch "
-                f"{SEARCH_WSDL} directly in a browser to inspect the current schema."
+                "401/403 usually means TRADERA_APP_ID/TRADERA_APP_KEY are missing "
+                "or invalid. Register/verify at https://api.tradera.com/register."
             ),
         }
+    except Exception as e:  # noqa: BLE001 — surface the raw error to the agent, it's actionable
+        return {"error": str(e)}
+
+
+async def _get_json(path: str) -> Any:
+    async with httpx.AsyncClient(timeout=_TIMEOUT) as client:
+        resp = await client.get(f"{BASE_URL}/{path}", headers=_auth_headers())
+        resp.raise_for_status()
+        return resp.json()
 
 
 async def get_categories() -> dict[str, Any]:
-    """Fetch Tradera's category tree, useful for finding category_id values.
-
-    NOTE: GetCategories lives on the PUBLIC service, not the search service.
-    """
+    """Fetch Tradera's category tree, useful for finding category_id values."""
     try:
-        client = _public_soap_client()
-        result = client.service.GetCategories(_soapheaders=_headers(client))
-        return {"categories": serialize_object(result)}
+        return {"categories": await _get_json("categories")}
     except Exception as e:  # noqa: BLE001
-        return {
-            "error": str(e),
-            "hint": (
-                "Check TRADERA_APP_ID/TRADERA_APP_KEY are set and valid. "
-                f"GetCategories is served by {PUBLIC_WSDL}."
-            ),
-        }
+        return {"error": str(e)}
+
+
+async def get_counties() -> dict[str, Any]:
+    """Fetch Tradera's county list (id -> name) for the optional county_id filter."""
+    try:
+        return {"counties": await _get_json("reference-data/counties")}
+    except Exception as e:  # noqa: BLE001
+        return {"error": str(e)}
 
 
 if __name__ == "__main__":
@@ -213,7 +175,7 @@ if __name__ == "__main__":
     load_dotenv()
 
     async def _main() -> None:
-        res = await search_tradera("iphone", max_results=5)
+        res = await search_tradera("iphone", price_min=100, price_max=500, max_results=5)
         print(json.dumps(res, indent=2, default=str))
 
     asyncio.run(_main())

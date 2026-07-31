@@ -11,30 +11,42 @@ a newer version, or https://github.com/dunderrrrrr/blocket_api for issues.
 """
 from __future__ import annotations
 
+import os
 from typing import Any
 
 from blocket_api import AsyncBlocketAPI, Category, Location, SortOrder
 
-# Only the counties relevant to a Växjö / Älmhult radius.
-# Blocket's location filter is REGIONAL (län), not a precise radius —
-# there is no lat/lng radius filter available in the unofficial API.
-# Kronoberg covers Växjö + Älmhult. We also include the bordering counties
-# so nothing just across a county line is missed; the LLM should still
-# apply the real 30-min-drive filter itself using each ad's stated location.
-RELEVANT_LOCATIONS = [
-    Location.KRONOBERG,      # Växjö, Älmhult
-    Location.KALMAR,         # bordering county, east
-    Location.JONKOPING,      # bordering county, north
-    Location.HALLAND,        # bordering county, west
-    Location.SKANE,          # bordering county, south
-]
-
+# Blocket's location filter is REGIONAL (län), not a precise radius — there is
+# no lat/lng radius filter available in the unofficial API. Searches default to
+# ALL of Sweden. To narrow the default to specific counties, set the
+# BLOCKET_LOCATIONS env var to a comma-separated list of Location names, e.g.
+#   BLOCKET_LOCATIONS=KRONOBERG,KALMAR,JONKOPING,HALLAND,SKANE
+# Callers can also pass `locations=[...]` per-search to override the default.
+# Because the regional filter is coarse, the LLM should still apply any precise
+# "within X min drive" filter itself using each ad's location / coordinates.
 CATEGORY_MAP = {c.name.lower(): c for c in Category}
 
 
 def list_categories() -> list[str]:
     """Return all Blocket category names this client can filter on."""
     return sorted(CATEGORY_MAP.keys())
+
+
+def list_locations() -> list[str]:
+    """Return all Blocket region (län) names usable as a location filter."""
+    return sorted(Location.__members__.keys())
+
+
+def _resolve_locations(names: list[str] | None) -> list[Location]:
+    """Turn location names (or the BLOCKET_LOCATIONS env default) into Location enums.
+
+    Precedence: explicit `names` arg > BLOCKET_LOCATIONS env var > all of Sweden
+    (an empty list, which Blocket treats as no regional filter).
+    """
+    if names is None:
+        env = os.environ.get("BLOCKET_LOCATIONS", "")
+        names = [n.strip() for n in env.split(",") if n.strip()]
+    return [Location[n.upper()] for n in names if n.upper() in Location.__members__]
 
 
 def _normalize_ad(raw: dict[str, Any]) -> dict[str, Any]:
@@ -84,8 +96,8 @@ def _normalize_ad(raw: dict[str, Any]) -> dict[str, Any]:
         "title": raw.get("heading") or raw.get("subject") or raw.get("title"),
         "price_sek": price_value,
         "location": location_name,
-        # Exact lat/lon + Blocket's own distance help the LLM apply the real
-        # "30 min drive from Växjö" filter that the regional filter can't.
+        # Exact lat/lon + Blocket's own distance let the LLM apply a precise
+        # "within X min drive" filter that the coarse regional filter can't.
         "coordinates": coordinates,
         "distance": raw.get("distance"),
         "url": raw.get("canonical_url") or raw.get("share_url") or raw.get("url")
@@ -109,8 +121,9 @@ async def search_blocket(
     Args:
         query: Free-text search query (Swedish terms work best, e.g. "String hylla").
         category: Optional category name from list_categories(), e.g. "mobler_och_inredning".
-        locations: Optional list of Location enum names (e.g. ["KRONOBERG"]).
-                   Defaults to Kronoberg + bordering counties if not given.
+        locations: Optional list of region (län) names from list_locations(),
+                   e.g. ["KRONOBERG", "KALMAR"]. If omitted, falls back to the
+                   BLOCKET_LOCATIONS env var, and if that's unset, all of Sweden.
         max_pages: How many result pages to fetch (each page ~60 ads). Keep small to limit load.
 
     Returns:
@@ -123,9 +136,7 @@ async def search_blocket(
         if cat is None:
             warning = f"Unknown category '{category}'. Ignoring filter. Valid options: {list_categories()}"
 
-    locs = RELEVANT_LOCATIONS
-    if locations:
-        locs = [Location[loc.upper()] for loc in locations if loc.upper() in Location.__members__]
+    locs = _resolve_locations(locations)
 
     api = AsyncBlocketAPI()
     all_ads: list[dict[str, Any]] = []
