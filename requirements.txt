@@ -1,0 +1,6 @@
+# mcp 2.0 is a major rewrite that removed the FastMCP API this server uses,
+# so pin to the 1.x line (>=1.9 is required for the tool title= argument).
+mcp>=1.9.0,<2.0.0
+blocket-api>=0.5.2
+zeep>=4.2.1
+python-dotenv>=1.0.0
