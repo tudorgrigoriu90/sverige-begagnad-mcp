@@ -4,6 +4,12 @@
 # Personal sourcing output — not part of the server
 sourcing-report-*.md
 
+# MCP Registry publisher CLI (downloaded locally)
+mcp-publisher
+mcp-publisher.exe
+mcp-publisher*.tar.gz
+.mcpregistry_*
+
 # Python
 __pycache__/
 *.py[cod]
