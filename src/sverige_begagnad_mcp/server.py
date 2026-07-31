@@ -16,7 +16,13 @@ from mcp.server.fastmcp import FastMCP
 
 load_dotenv()
 
-from . import blocket_client, tradera_client, facebook_client  # noqa: E402
+from . import (  # noqa: E402
+    blocket_client,
+    tradera_client,
+    facebook_client,
+    klaravik_client,
+    vinted_client,
+)
 
 mcp = FastMCP("sverige-begagnad")
 
@@ -121,11 +127,39 @@ async def search_facebook_marketplace(
 
 
 @mcp.tool(
+    title="Search Klaravik",
+    description=(
+        "Search Klaravik.se, a Swedish online auction house — strong for undervalued "
+        "tools, machinery, and house-clearance goods. Prices are the current bid (SEK) "
+        "and can rise before the auction ends. Swedish search terms work best."
+    ),
+)
+async def search_klaravik(query: str) -> dict[str, Any]:
+    return await klaravik_client.search_klaravik(query=query)
+
+
+@mcp.tool(
+    title="Search Vinted",
+    description=(
+        "Search Vinted.se, a second-hand fashion marketplace — good for genuine "
+        "leather/wool and branded clothing. National (ships anywhere). Unofficial and "
+        "the most fragile source (bot-protected); may occasionally be rate-limited."
+    ),
+)
+async def search_vinted(
+    query: str,
+    price_min: Optional[int] = None,
+    price_max: Optional[int] = None,
+) -> dict[str, Any]:
+    return await vinted_client.search_vinted(query=query, price_min=price_min, price_max=price_max)
+
+
+@mcp.tool(
     title="Search all sources",
     description=(
-        "Search Blocket + Tradera (+ Facebook Marketplace if enabled) in one call "
-        "and return combined, normalized results. Use this for the weekly sourcing "
-        "sweep instead of calling each source separately."
+        "Search Blocket + Tradera + Klaravik + Vinted (+ Facebook Marketplace if enabled) "
+        "in one call and return combined, normalized results. Use this for the weekly "
+        "sourcing sweep instead of calling each source separately."
     ),
 )
 async def search_all(
@@ -142,10 +176,14 @@ async def search_all(
     tradera_res = await tradera_client.search_tradera(
         query=query, category_id=tradera_category_id, price_min=price_min, price_max=price_max
     )
+    klaravik_res = await klaravik_client.search_klaravik(query=query)
+    vinted_res = await vinted_client.search_vinted(query=query, price_min=price_min, price_max=price_max)
 
     combined: list[dict[str, Any]] = []
     combined.extend(blocket_res.get("ads", []))
     combined.extend(tradera_res.get("items", []))
+    combined.extend(klaravik_res.get("items", []))
+    combined.extend(vinted_res.get("items", []))
 
     fb_res = None
     if facebook_client.facebook_search_enabled():
@@ -158,7 +196,13 @@ async def search_all(
         "results": combined,
         "source_errors": {
             k: v.get("error")
-            for k, v in {"blocket": blocket_res, "tradera": tradera_res, "facebook": fb_res or {}}.items()
+            for k, v in {
+                "blocket": blocket_res,
+                "tradera": tradera_res,
+                "klaravik": klaravik_res,
+                "vinted": vinted_res,
+                "facebook": fb_res or {},
+            }.items()
             if isinstance(v, dict) and v.get("error")
         },
     }

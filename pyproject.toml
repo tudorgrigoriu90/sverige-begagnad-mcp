@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "sverige-begagnad-mcp"
-version = "0.1.0"
+version = "0.2.0"
 description = "MCP server that searches Blocket and Tradera for quality second-hand items in Sweden."
 readme = "README.md"
 requires-python = ">=3.10"

@@ -6,8 +6,9 @@
 
 **Find quality second-hand deals across Sweden — straight from your AI assistant.**
 
-An MCP server that lets Claude (or any MCP client) search **Blocket** and **Tradera**
-for used items worth buying, restoring, and reselling.
+An MCP server that lets Claude (or any MCP client) search **Blocket**, **Tradera**,
+**Klaravik**, and **Vinted** (plus optional local Facebook Marketplace) for used items
+worth buying, restoring, and reselling.
 
 [![PyPI](https://img.shields.io/pypi/v/sverige-begagnad-mcp.svg?logo=pypi&logoColor=white)](https://pypi.org/project/sverige-begagnad-mcp/)
 [![MCP Registry](https://img.shields.io/badge/MCP%20Registry-listed-1f6feb.svg)](https://registry.modelcontextprotocol.io/v0/servers?search=sverige-begagnad)
@@ -41,7 +42,7 @@ locations, links, and images — from both marketplaces in one go.
 
 | | |
 |---|---|
-| 🔎 **Two marketplaces** | Blocket + Tradera, searched together or separately, normalized into one shape |
+| 🔎 **Four marketplaces** | Blocket + Tradera + Klaravik + Vinted, searched together or separately, normalized into one shape |
 | 🎯 **Rich filters** | Price min/max, category, county (Tradera) · region + category (Blocket) |
 | 📍 **Location-aware** | Every Blocket result carries `coordinates` + `distance` for precise radius filtering |
 | 🌍 **General by default** | Searches all of Sweden; scope it to your area via config or per-search |
@@ -54,8 +55,10 @@ locations, links, and images — from both marketplaces in one go.
 | Source | Method | Stability |
 |---|---|---|
 | **Tradera** | Official REST API (v4) | 🟢 Solid — tested live; requires free registration |
-| **Blocket** | Community package (`blocket-api`) | 🟡 Semi-stable, unofficial — tested live against the real API |
-| **Facebook Marketplace** | Disabled by default | 🔴 Risky — see `src/sverige_begagnad_mcp/facebook_client.py` |
+| **Blocket** | Community package (`blocket-api`) | 🟡 Semi-stable, unofficial — tested live |
+| **Klaravik** | Internal JSON endpoint | 🟡 Unofficial — tested live; auction current-bid prices |
+| **Vinted** | Internal API (bot-protected) | 🟠 Unofficial, most fragile — works best from a residential IP |
+| **Facebook Marketplace** | Disabled by default | 🔴 Risky, local-only — see `facebook_client.py` |
 
 ---
 
@@ -158,8 +161,10 @@ Both are tested live. If Tradera's shape ever drifts, the OpenAPI spec is at
 | `search_tradera(query, category_id?, price_min?, price_max?, county_id?)` | Search Tradera |
 | `list_tradera_categories()` | Category tree → `category_id` |
 | `list_tradera_counties()` | County ids for the optional `county_id` filter |
-| `search_facebook_marketplace(...)` | Disabled by default |
-| `search_all(query, blocket_category?, blocket_locations?, tradera_category_id?, price_min?, price_max?)` | Blocket + Tradera in one call |
+| `search_klaravik(query)` | Search Klaravik auctions (current-bid prices) |
+| `search_vinted(query, price_min?, price_max?)` | Search Vinted fashion listings |
+| `search_facebook_marketplace(...)` | Disabled by default (local-only) |
+| `search_all(query, blocket_category?, blocket_locations?, tradera_category_id?, price_min?, price_max?)` | Blocket + Tradera + Klaravik + Vinted in one call |
 
 ## 📍 Geographic scope
 
