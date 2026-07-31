@@ -1,0 +1,18 @@
+{
+  "name": "sverige-begagnad-marketplace",
+  "owner": {
+    "name": "Tudor"
+  },
+  "metadata": {
+    "description": "MCP tools for sourcing quality second-hand items on Blocket and Tradera.",
+    "version": "0.1.0",
+    "pluginRoot": "./plugins"
+  },
+  "plugins": [
+    {
+      "name": "sverige-begagnad",
+      "source": "./plugins/sverige-begagnad",
+      "description": "Search Blocket and Tradera for quality second-hand items in Sweden."
+    }
+  ]
+}

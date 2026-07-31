@@ -15,61 +15,53 @@ via config or per-search (see [Geographic scope](#geographic-scope)).
 |---|---|---|
 | Tradera | Official REST API (v4) | Solid — tested live; requires free registration |
 | Blocket | Community package (`blocket-api`) | Semi-stable, unofficial — tested live against the real API |
-| Facebook Marketplace | **Disabled by default** | Risky — see `src/facebook_client.py` |
+| Facebook Marketplace | **Disabled by default** | Risky — see `src/sverige_begagnad_mcp/facebook_client.py` |
+
+## Get Tradera credentials (required for all install methods)
+
+1. Go to https://api.tradera.com/register and register (free).
+2. Accept the Terms of Use + Logo Terms of Use.
+3. Create an application and copy the numeric **App ID** and the **App Key**
+   (GUID secret). You'll supply these as `TRADERA_APP_ID` / `TRADERA_APP_KEY`.
+
+Blocket needs no credentials. Facebook Marketplace is off by default.
 
 ## Installation
 
-```bash
-cd sverige-begagnad-mcp
-python -m venv .venv
-source .venv/bin/activate  # Windows: .venv\Scripts\activate
-pip install -r requirements.txt
-cp .env.example .env
-```
+Every user runs their own copy with their own Tradera keys — pick whichever
+method fits your client. `uvx`-based methods need [uv](https://docs.astral.sh/uv/)
+installed (`curl -LsSf https://astral.sh/uv/install.sh | sh`, or
+`winget install astral-sh.uv` on Windows); no cloning or virtualenv needed.
 
-### 1. Tradera Developer account
-
-1. Go to https://api.tradera.com/register and register (free)
-2. Accept the Terms of Use + Logo Terms of Use
-3. Create an application and copy the numeric `App ID` and the `App Key` (GUID
-   secret) into `.env`
-
-### 2. Test Tradera on its own before connecting to Claude
+### Option 1 — Claude Code plugin (easiest)
 
 ```bash
-python -m src.tradera_client
+claude plugin marketplace add tudorgrigoriu90/sverige-begagnad-mcp
+claude plugin install sverige-begagnad@sverige-begagnad-marketplace
 ```
 
-You should get back a few JSON results. This uses Tradera's official **REST API
-v4** (`https://api.tradera.com/v4`) with header auth (`X-App-Id` / `X-App-Key`)
-— the same API surface Tradera's own AI plugin is built on. It has been tested
-live. If the response shape ever drifts, the raw OpenAPI spec is at
-`https://api.tradera.com/openapi.json`.
-
-### 3. Test Blocket on its own
+Then export your keys (the plugin passes them through to the server):
 
 ```bash
-python3 -c "
-import asyncio
-from src.blocket_client import search_blocket
-print(asyncio.run(search_blocket('String hylla')))
-"
+export TRADERA_APP_ID=...      # Windows PowerShell: $env:TRADERA_APP_ID="..."
+export TRADERA_APP_KEY=...
+export BLOCKET_LOCATIONS=      # optional; empty = all of Sweden
 ```
 
-This has been verified live against the real Blocket API (results come back
-under the `docs` key, and the price under `price.amount`).
+Restart Claude Code and you'll have `search_blocket`, `search_tradera`,
+`search_all`, etc. The plugin runs the server via `uvx` straight from GitHub.
 
-### 4. Add to Claude Desktop
+### Option 2 — uvx (Claude Desktop or any MCP client)
 
-In Claude Desktop's MCP config file:
+Add to your client's MCP config (Claude Desktop: Settings → Developer → Edit
+Config):
 
 ```json
 {
   "mcpServers": {
     "sverige-begagnad": {
-      "command": "/path/to/sverige-begagnad-mcp/.venv/bin/python",
-      "args": ["-m", "src.server"],
-      "cwd": "/path/to/sverige-begagnad-mcp",
+      "command": "uvx",
+      "args": ["--from", "git+https://github.com/tudorgrigoriu90/sverige-begagnad-mcp", "sverige-begagnad-mcp"],
       "env": {
         "TRADERA_APP_ID": "...",
         "TRADERA_APP_KEY": "...",
@@ -80,8 +72,46 @@ In Claude Desktop's MCP config file:
 }
 ```
 
-Restart Claude Desktop. You should see the tools `search_blocket`,
-`search_tradera`, `search_all`, etc. available in the conversation.
+Once published to PyPI, the `args` simplify to just `["sverige-begagnad-mcp"]`.
+Restart the client.
+
+### Option 3 — From source (development)
+
+```bash
+git clone https://github.com/tudorgrigoriu90/sverige-begagnad-mcp
+cd sverige-begagnad-mcp
+python -m venv .venv
+source .venv/bin/activate   # Windows: .venv\Scripts\activate
+pip install -e .
+cp .env.example .env        # then fill in your keys
+```
+
+Point your client at the venv's `sverige-begagnad-mcp` command (or
+`python -m sverige_begagnad_mcp.server`) with `cwd` set to the repo.
+
+## Verify it works (optional)
+
+From a source checkout with keys set (in `.env` or the environment):
+
+```bash
+# Tradera — official REST API v4 (https://api.tradera.com/v4, header auth)
+python -m sverige_begagnad_mcp.tradera_client
+
+# Blocket — unofficial community API
+python -c "import asyncio; from sverige_begagnad_mcp.blocket_client import search_blocket; print(asyncio.run(search_blocket('String hylla')))"
+```
+
+Both are tested live. If Tradera's shape ever drifts, the OpenAPI spec is at
+`https://api.tradera.com/openapi.json`.
+
+## Publishing (maintainer notes)
+
+- **PyPI** (enables the short `uvx sverige-begagnad-mcp`): `python -m build`
+  then `twine upload dist/*`. Bump `version` in `pyproject.toml` and
+  `src/sverige_begagnad_mcp/__init__.py` first.
+- **Plugin marketplace**: the `.claude-plugin/marketplace.json` and
+  `plugins/sverige-begagnad/` dirs make this repo itself the marketplace — no
+  extra hosting. Users add it with the Option 1 commands above.
 
 ## Available tools
 
@@ -138,7 +168,7 @@ listings).
 
 There is no public API for Facebook Marketplace. The only known methods (session
 cookies or headless-browser scraping) explicitly violate Facebook's Terms of
-Service. The `src/facebook_client.py` module is intentionally left as a stub,
+Service. The `src/sverige_begagnad_mcp/facebook_client.py` module is intentionally left as a stub,
 with an explanation of how you could implement it yourself, at your own risk, if
 you decide to go further.
 

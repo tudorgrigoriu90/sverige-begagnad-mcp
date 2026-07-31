@@ -1,0 +1,12 @@
+{
+  "name": "sverige-begagnad",
+  "displayName": "Sverige Begagnad",
+  "version": "0.1.0",
+  "description": "Search Blocket and Tradera for quality second-hand items in Sweden.",
+  "author": {
+    "name": "Tudor"
+  },
+  "license": "MIT",
+  "keywords": ["blocket", "tradera", "second-hand", "sweden", "loppis", "mcp"],
+  "mcpServers": "./.mcp.json"
+}

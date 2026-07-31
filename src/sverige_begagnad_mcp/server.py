@@ -4,7 +4,7 @@ second-hand items on Blocket, Tradera, and (optionally) Facebook
 Marketplace, to flip for profit around Växjö / Älmhult.
 
 Run locally via stdio (see README.md for Claude Desktop config):
-    python -m src.server
+    python -m sverige_begagnad_mcp.server
 """
 from __future__ import annotations
 
@@ -164,5 +164,10 @@ async def search_all(
     }
 
 
-if __name__ == "__main__":
+def main() -> None:
+    """Console-script entry point (see pyproject.toml [project.scripts])."""
     mcp.run(transport="stdio")
+
+
+if __name__ == "__main__":
+    main()

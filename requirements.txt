@@ -1,6 +1,4 @@
-# mcp 2.0 is a major rewrite that removed the FastMCP API this server uses,
-# so pin to the 1.x line (>=1.9 is required for the tool title= argument).
-mcp>=1.9.0,<2.0.0
-blocket-api>=0.5.2
-httpx>=0.27.0
-python-dotenv>=1.0.0
+# Dependencies are declared in pyproject.toml (the single source of truth).
+# For a local dev/editable install of this project and its deps, run:
+#     pip install -e .
+-e .

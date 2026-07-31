@@ -166,7 +166,7 @@ async def get_counties() -> dict[str, Any]:
 
 if __name__ == "__main__":
     # Quick manual sanity check — run with TRADERA_APP_ID/KEY set:
-    #   python -m src.tradera_client
+    #   python -m sverige_begagnad_mcp.tradera_client
     import asyncio
     import json
 
