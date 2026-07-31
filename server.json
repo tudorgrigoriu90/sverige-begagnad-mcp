@@ -1,0 +1,42 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.tudorgrigoriu90/sverige-begagnad-mcp",
+  "title": "Sverige Begagnad",
+  "description": "Search Blocket and Tradera for quality second-hand items in Sweden.",
+  "repository": {
+    "url": "https://github.com/tudorgrigoriu90/sverige-begagnad-mcp",
+    "source": "github"
+  },
+  "version": "0.1.0",
+  "packages": [
+    {
+      "registryType": "pypi",
+      "registryBaseUrl": "https://pypi.org",
+      "identifier": "sverige-begagnad-mcp",
+      "version": "0.1.0",
+      "transport": {
+        "type": "stdio"
+      },
+      "environmentVariables": [
+        {
+          "name": "TRADERA_APP_ID",
+          "description": "Numeric Tradera App ID from api.tradera.com/register.",
+          "isRequired": true,
+          "isSecret": false
+        },
+        {
+          "name": "TRADERA_APP_KEY",
+          "description": "Tradera App Key (GUID secret) from api.tradera.com/register.",
+          "isRequired": true,
+          "isSecret": true
+        },
+        {
+          "name": "BLOCKET_LOCATIONS",
+          "description": "Optional comma-separated Blocket region (län) names to scope searches; empty = all of Sweden.",
+          "isRequired": false,
+          "isSecret": false
+        }
+      ]
+    }
+  ]
+}

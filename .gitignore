@@ -1,6 +1,9 @@
 # Secrets — never commit real Tradera credentials
 .env
 
+# Personal sourcing output — not part of the server
+sourcing-report-*.md
+
 # Python
 __pycache__/
 *.py[cod]

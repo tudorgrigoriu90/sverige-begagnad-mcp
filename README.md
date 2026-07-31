@@ -1,37 +1,78 @@
-# Sverige Begagnad MCP
+<!-- mcp-name: io.github.tudorgrigoriu90/sverige-begagnad-mcp -->
 
-A personal MCP server for local use (Claude Desktop / Claude Code) that searches
-for quality second-hand items on **Blocket** and **Tradera** (and optionally
-**Facebook Marketplace**), for a small flip loppis.
+<div align="center">
 
-By default it searches **all of Sweden**; you narrow the area to your own region
-via config or per-search (see [Geographic scope](#geographic-scope)).
+# 🇸🇪 Sverige Begagnad MCP
 
-**Not publicly listed or monetized** — use it locally only, via MCP config.
+**Find quality second-hand deals across Sweden — straight from your AI assistant.**
 
-## Source status
+An MCP server that lets Claude (or any MCP client) search **Blocket** and **Tradera**
+for used items worth buying, restoring, and reselling.
+
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://www.python.org/)
+[![MCP](https://img.shields.io/badge/MCP-server-8A2BE2.svg)](https://modelcontextprotocol.io/)
+[![Tradera API v4](https://img.shields.io/badge/Tradera-REST%20v4-00A46C.svg)](https://api.tradera.com/)
+[![Blocket](https://img.shields.io/badge/Blocket-search-E4002B.svg)](https://www.blocket.se/)
+
+</div>
+
+---
+
+## 💬 What you can ask Claude
+
+Once connected, just talk to it:
+
+> 🪑 *"Find String shelves (String hylla) near Växjö under 1000 SEK."*
+
+> 🛠️ *"Search Blocket and Tradera for Festool or Makita tools I could flip for profit."*
+
+> 🔊 *"What Bang & Olufsen speakers are on Tradera between 500 and 3000 SEK?"*
+
+> 🚲 *"List Blocket categories, then look for quality bikes (Kronan, Crescent) in Skåne."*
+
+> 📈 *"Do this week's sourcing sweep for Scandinavian design in Kronoberg and neighbouring counties, ranked by estimated profit."*
+
+Claude picks the right tools, applies your filters, and hands back titles, prices,
+locations, links, and images — from both marketplaces in one go.
+
+## ✨ Features
+
+| | |
+|---|---|
+| 🔎 **Two marketplaces** | Blocket + Tradera, searched together or separately, normalized into one shape |
+| 🎯 **Rich filters** | Price min/max, category, county (Tradera) · region + category (Blocket) |
+| 📍 **Location-aware** | Every Blocket result carries `coordinates` + `distance` for precise radius filtering |
+| 🌍 **General by default** | Searches all of Sweden; scope it to your area via config or per-search |
+| 🧭 **Discovery tools** | List categories, regions, and counties so the agent filters intelligently |
+| 🧩 **Easy install** | One-command Claude Code plugin, `uvx`, or from source — each user brings their own keys |
+| ✅ **Tested live** | Every source verified end-to-end against the real APIs |
+
+## 📊 Source status
 
 | Source | Method | Stability |
 |---|---|---|
-| Tradera | Official REST API (v4) | Solid — tested live; requires free registration |
-| Blocket | Community package (`blocket-api`) | Semi-stable, unofficial — tested live against the real API |
-| Facebook Marketplace | **Disabled by default** | Risky — see `src/sverige_begagnad_mcp/facebook_client.py` |
+| **Tradera** | Official REST API (v4) | 🟢 Solid — tested live; requires free registration |
+| **Blocket** | Community package (`blocket-api`) | 🟡 Semi-stable, unofficial — tested live against the real API |
+| **Facebook Marketplace** | Disabled by default | 🔴 Risky — see `src/sverige_begagnad_mcp/facebook_client.py` |
 
-## Get Tradera credentials (required for all install methods)
+---
 
-1. Go to https://api.tradera.com/register and register (free).
+## 🔑 Get Tradera credentials (required for all install methods)
+
+1. Register (free) at **https://api.tradera.com/register**.
 2. Accept the Terms of Use + Logo Terms of Use.
 3. Create an application and copy the numeric **App ID** and the **App Key**
    (GUID secret). You'll supply these as `TRADERA_APP_ID` / `TRADERA_APP_KEY`.
 
-Blocket needs no credentials. Facebook Marketplace is off by default.
+> Blocket needs no credentials. Facebook Marketplace is off by default.
 
-## Installation
+## 📦 Installation
 
-Every user runs their own copy with their own Tradera keys — pick whichever
-method fits your client. `uvx`-based methods need [uv](https://docs.astral.sh/uv/)
+Every user runs their own copy with their own Tradera keys — pick whichever method
+fits your client. `uvx`-based methods need [uv](https://docs.astral.sh/uv/)
 installed (`curl -LsSf https://astral.sh/uv/install.sh | sh`, or
-`winget install astral-sh.uv` on Windows); no cloning or virtualenv needed.
+`winget install astral-sh.uv` on Windows) — no cloning or virtualenv needed.
 
 ### Option 1 — Claude Code plugin (easiest)
 
@@ -48,13 +89,12 @@ export TRADERA_APP_KEY=...
 export BLOCKET_LOCATIONS=      # optional; empty = all of Sweden
 ```
 
-Restart Claude Code and you'll have `search_blocket`, `search_tradera`,
-`search_all`, etc. The plugin runs the server via `uvx` straight from GitHub.
+Restart Claude Code — you'll have `search_blocket`, `search_tradera`, `search_all`,
+and more. The plugin runs the server via `uvx` straight from GitHub.
 
 ### Option 2 — uvx (Claude Desktop or any MCP client)
 
-Add to your client's MCP config (Claude Desktop: Settings → Developer → Edit
-Config):
+Add to your client's MCP config (Claude Desktop: **Settings → Developer → Edit Config**):
 
 ```json
 {
@@ -72,8 +112,7 @@ Config):
 }
 ```
 
-Once published to PyPI, the `args` simplify to just `["sverige-begagnad-mcp"]`.
-Restart the client.
+Once published to PyPI, the `args` simplify to just `["sverige-begagnad-mcp"]`. Restart the client.
 
 ### Option 3 — From source (development)
 
@@ -89,7 +128,8 @@ cp .env.example .env        # then fill in your keys
 Point your client at the venv's `sverige-begagnad-mcp` command (or
 `python -m sverige_begagnad_mcp.server`) with `cwd` set to the repo.
 
-## Verify it works (optional)
+<details>
+<summary>✅ <b>Verify it works (optional)</b></summary>
 
 From a source checkout with keys set (in `.env` or the environment):
 
@@ -103,77 +143,113 @@ python -c "import asyncio; from sverige_begagnad_mcp.blocket_client import searc
 
 Both are tested live. If Tradera's shape ever drifts, the OpenAPI spec is at
 `https://api.tradera.com/openapi.json`.
+</details>
 
-## Publishing (maintainer notes)
+---
 
-- **PyPI** (enables the short `uvx sverige-begagnad-mcp`): `python -m build`
-  then `twine upload dist/*`. Bump `version` in `pyproject.toml` and
-  `src/sverige_begagnad_mcp/__init__.py` first.
-- **Plugin marketplace**: the `.claude-plugin/marketplace.json` and
-  `plugins/sverige-begagnad/` dirs make this repo itself the marketplace — no
-  extra hosting. Users add it with the Option 1 commands above.
+## 🧰 Tools
 
-## Available tools
+| Tool | Purpose |
+|---|---|
+| `search_blocket(query, category?, locations?, max_pages?)` | Search Blocket |
+| `list_blocket_categories()` | Valid category names |
+| `list_blocket_locations()` | Valid region (län) names |
+| `search_tradera(query, category_id?, price_min?, price_max?, county_id?)` | Search Tradera |
+| `list_tradera_categories()` | Category tree → `category_id` |
+| `list_tradera_counties()` | County ids for the optional `county_id` filter |
+| `search_facebook_marketplace(...)` | Disabled by default |
+| `search_all(query, blocket_category?, blocket_locations?, tradera_category_id?, price_min?, price_max?)` | Blocket + Tradera in one call |
 
-- `search_blocket(query, category?, locations?, max_pages?)`
-- `list_blocket_categories()`
-- `list_blocket_locations()` — valid region (län) names for `locations`
-- `search_tradera(query, category_id?, price_min?, price_max?, county_id?)`
-- `list_tradera_categories()`
-- `list_tradera_counties()` — county ids for the optional `county_id` filter
-- `search_facebook_marketplace(...)` — disabled by default
-- `search_all(query, blocket_category?, blocket_locations?, tradera_category_id?, price_min?, price_max?)`
-  — combines Blocket + Tradera (+ FB if enabled)
+## 📍 Geographic scope
 
-## Geographic scope
+Searches default to **all of Sweden**. Three ways to set the area, in order of precedence:
 
-Searches default to **all of Sweden**. There are three ways to set the area,
-in order of precedence:
-
-1. **Per-search** — pass `locations` to `search_blocket` (or `blocket_locations`
-   to `search_all`), e.g. `["KRONOBERG", "KALMAR"]`. Use `list_blocket_locations()`
-   for valid names.
-2. **A personal default** — set `BLOCKET_LOCATIONS` in `.env` to a comma-separated
-   list of region names.
+1. **Per-search** — pass `locations` to `search_blocket` (or `blocket_locations` to
+   `search_all`), e.g. `["KRONOBERG", "KALMAR"]`. Use `list_blocket_locations()` for valid names.
+2. **A personal default** — set `BLOCKET_LOCATIONS` in `.env` to a comma-separated list of region names.
 3. **Nothing set** — all of Sweden.
 
 Blocket's filter is **regional (län)**, not a precise km radius. For a tight
-"within X min drive" filter, let Claude do the final check per listing — each
-result includes the ad's text location plus `coordinates` (lat/lon) and Blocket's
-own `distance`. Tradera is national with shipping, so it has no radius concept
-(there's an optional `county_id` filter, rarely needed).
+"within X min drive" filter, let Claude do the final check per listing — each result
+includes the ad's text location plus `coordinates` (lat/lon) and Blocket's own
+`distance`. Tradera is national with shipping, so it has no radius concept (there's
+an optional `county_id` filter, rarely needed).
 
-### My own configuration (example)
+<details>
+<summary>🗺️ <b>Example: my own Växjö / Älmhult setup</b></summary>
 
-My personal setup targets the Växjö / Älmhult area — Kronoberg plus the
-bordering counties — via `.env` (gitignored, not part of the shipped defaults):
+Personal scope lives only in `.env` (gitignored — not a shipped default):
 
 ```dotenv
 BLOCKET_LOCATIONS=KRONOBERG,KALMAR,JONKOPING,HALLAND,SKANE
 ```
+</details>
 
-## Relationship to Tradera's official AI plugin
+<details>
+<summary>🤖 <b>Power user: a full weekly "sourcing agent" prompt</b></summary>
 
-Tradera publishes an official plugin marketplace,
-[`tradera/ai-marketplace`](https://github.com/tradera/ai-marketplace)
-(`claude plugin marketplace add tradera/ai-marketplace`). Its `tradera-api`
-plugin covers **listing management** (look up an item by id, publish, end
-listings, user token) but **not search** — so it doesn't replace this server's
-sourcing/search use case. Both talk to the same Tradera REST API v4, so they
-share the same `TRADERA_APP_ID` / `TRADERA_APP_KEY` credentials and can be used
-side by side (this server to find items, the official plugin to manage your own
-listings).
+Paste this as your instructions to turn the tools into a profit-ranked weekly sweep.
+It runs many targeted Swedish searches, filters by radius/quality, estimates profit,
+and returns a ranked shortlist. Tune the brands, region, and thresholds to taste.
 
-## Facebook Marketplace — why it's disabled
+```text
+ROLE: You are a sourcing assistant for a personal, quality-focused loppis (flip).
+Each week, search Blocket and Tradera for second-hand items to buy, minimally
+restore, and resell at a profit.
+
+METHOD: Search with SWEDISH terms. Run MANY targeted searches — by BRAND and by
+CATEGORY — across both sources; deduplicate. Prices are in SEK.
+
+AREA: within ~35 km straight-line of Växjö (56.88, 14.81) or Älmhult (56.55, 14.14),
+computed from each Blocket result's `coordinates`. Tradera ships nationally, so
+include shippable Tradera items too.
+
+QUALITY: recognized brand or top craftsmanship (String, Artek, Fritz Hansen, Louis
+Poulsen, Iittala, Orrefors, Bang & Olufsen, Braun, Marantz, Bahco, Hilti, Festool,
+Makita, Kronan, Crescent…); "bra skick"/"nyskick" or minor cosmetic wear; asking
+price clearly below market; only minimal restoration (clean, polish, light sand,
+small off-the-shelf parts).
+
+PROFIT: estimate resale value (use web search for comparables if available — do NOT
+invent sold prices). Net = resale − (purchase + restoration + pickup/courier), with
+stated assumptions (~80 SEK pickup fuel, ~70 SEK courier, 0–150 SEK materials).
+Include only items with estimated net profit ≥ 300 SEK. Note that Tradera auction
+prices may rise before close.
+
+OUTPUT: ranked by net profit descending, max 15. For each: title + link + location
+(distance from Växjö or "ships nationally"), asking vs. estimated market price, net
+profit with assumptions, 2–3 restoration steps, and a risk note. End with a 2–3
+sentence read on the week's trends. Don't pad with weak candidates.
+```
+</details>
+
+---
+
+## 🚫 Facebook Marketplace — why it's disabled
 
 There is no public API for Facebook Marketplace. The only known methods (session
-cookies or headless-browser scraping) explicitly violate Facebook's Terms of
-Service. The `src/sverige_begagnad_mcp/facebook_client.py` module is intentionally left as a stub,
-with an explanation of how you could implement it yourself, at your own risk, if
-you decide to go further.
+cookies or headless-browser scraping) explicitly violate Facebook's Terms of Service.
+The `src/sverige_begagnad_mcp/facebook_client.py` module is intentionally left as a
+stub, with an explanation of how you could implement it yourself, at your own risk.
 
-## Extending / maintenance
+## 🛠️ Maintenance & publishing
 
-If Blocket or Tradera change their API and the tools start failing, check:
-- Blocket: https://pypi.org/project/blocket-api/ for a newer version
-- Tradera: the OpenAPI spec at https://api.tradera.com/openapi.json
+<details>
+<summary>Maintainer notes</summary>
+
+- **If a source breaks:** Blocket → check https://pypi.org/project/blocket-api/ for a
+  newer version; Tradera → the OpenAPI spec at https://api.tradera.com/openapi.json.
+- **PyPI** (enables the short `uvx sverige-begagnad-mcp`): `python -m build` then
+  `twine upload dist/*`. Bump `version` in `pyproject.toml` and
+  `src/sverige_begagnad_mcp/__init__.py` first.
+- **Plugin marketplace:** the `.claude-plugin/marketplace.json` + `plugins/` dirs make
+  this repo itself the marketplace — no extra hosting.
+- **MCP Registry:** `server.json` is ready; publish with the `mcp-publisher` CLI after
+  the PyPI release (see the Registry publishing guide).
+</details>
+
+## 📄 License
+
+[MIT](LICENSE) — each user runs their own copy with their own credentials. Note that
+Blocket has no official API; this uses an unofficial community package, so treat the
+Blocket half accordingly.
