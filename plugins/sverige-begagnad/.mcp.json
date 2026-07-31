@@ -2,11 +2,7 @@
   "mcpServers": {
     "sverige-begagnad": {
       "command": "uvx",
-      "args": [
-        "--from",
-        "git+https://github.com/tudorgrigoriu90/sverige-begagnad-mcp",
-        "sverige-begagnad-mcp"
-      ],
+      "args": ["sverige-begagnad-mcp"],
       "env": {
         "TRADERA_APP_ID": "${TRADERA_APP_ID}",
         "TRADERA_APP_KEY": "${TRADERA_APP_KEY}",

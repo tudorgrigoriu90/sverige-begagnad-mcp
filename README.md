@@ -9,9 +9,10 @@
 An MCP server that lets Claude (or any MCP client) search **Blocket** and **Tradera**
 for used items worth buying, restoring, and reselling.
 
+[![PyPI](https://img.shields.io/pypi/v/sverige-begagnad-mcp.svg?logo=pypi&logoColor=white)](https://pypi.org/project/sverige-begagnad-mcp/)
+[![MCP Registry](https://img.shields.io/badge/MCP%20Registry-listed-1f6feb.svg)](https://registry.modelcontextprotocol.io/v0/servers?search=sverige-begagnad)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://www.python.org/)
-[![MCP](https://img.shields.io/badge/MCP-server-8A2BE2.svg)](https://modelcontextprotocol.io/)
 [![Tradera API v4](https://img.shields.io/badge/Tradera-REST%20v4-00A46C.svg)](https://api.tradera.com/)
 [![Blocket](https://img.shields.io/badge/Blocket-search-E4002B.svg)](https://www.blocket.se/)
 
@@ -101,7 +102,7 @@ Add to your client's MCP config (Claude Desktop: **Settings → Developer → Ed
   "mcpServers": {
     "sverige-begagnad": {
       "command": "uvx",
-      "args": ["--from", "git+https://github.com/tudorgrigoriu90/sverige-begagnad-mcp", "sverige-begagnad-mcp"],
+      "args": ["sverige-begagnad-mcp"],
       "env": {
         "TRADERA_APP_ID": "...",
         "TRADERA_APP_KEY": "...",
@@ -112,7 +113,7 @@ Add to your client's MCP config (Claude Desktop: **Settings → Developer → Ed
 }
 ```
 
-Once published to PyPI, the `args` simplify to just `["sverige-begagnad-mcp"]`. Restart the client.
+`uvx` fetches the published package from PyPI on first run and caches it. Restart the client.
 
 ### Option 3 — From source (development)
 
