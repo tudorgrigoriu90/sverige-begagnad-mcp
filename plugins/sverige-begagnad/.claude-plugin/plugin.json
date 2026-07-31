@@ -7,6 +7,5 @@
     "name": "Tudor"
   },
   "license": "MIT",
-  "keywords": ["blocket", "tradera", "second-hand", "sweden", "loppis", "mcp"],
-  "mcpServers": "./.mcp.json"
+  "keywords": ["blocket", "tradera", "second-hand", "sweden", "loppis", "mcp"]
 }
