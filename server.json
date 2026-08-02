@@ -2,18 +2,18 @@
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
   "name": "io.github.tudorgrigoriu90/sverige-begagnad-mcp",
   "title": "Sverige Begagnad",
-  "description": "Search Swedish second-hand marketplaces (Blocket, Tradera, Klaravik, Vinted) for quality used items to flip.",
+  "description": "Search Swedish second-hand marketplaces (Blocket, Tradera, Klaravik, Vinted) for used items.",
   "repository": {
     "url": "https://github.com/tudorgrigoriu90/sverige-begagnad-mcp",
     "source": "github"
   },
-  "version": "0.3.0",
+  "version": "0.3.1",
   "packages": [
     {
       "registryType": "pypi",
       "registryBaseUrl": "https://pypi.org",
       "identifier": "sverige-begagnad-mcp",
-      "version": "0.3.0",
+      "version": "0.3.1",
       "transport": {
         "type": "stdio"
       },

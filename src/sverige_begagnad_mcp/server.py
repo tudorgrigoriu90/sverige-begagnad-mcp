@@ -23,6 +23,7 @@ from . import (  # noqa: E402
     facebook_client,
     klaravik_client,
     vinted_client,
+    health,
 )
 
 mcp = FastMCP("sverige-begagnad")
@@ -288,6 +289,24 @@ async def search_all(
             if isinstance(v, dict) and v.get("error")
         },
     }
+
+
+@mcp.tool(
+    title="Health check",
+    description=(
+        "Ping every marketplace source (Blocket, Tradera, Klaravik, Vinted, and Facebook "
+        "if enabled) with a canned query and report whether each is still fetching data. "
+        "USE this to verify the server works end-to-end — e.g. from a scheduled monitor — "
+        "before relying on a sourcing sweep. Do NOT use it to search for items (use "
+        "search_all or a per-source tool). Takes no arguments. "
+        "Returns {healthy: bool, unhealthy_sources: [names], sources: {name: {ok, count, "
+        "latency_ms, error}}}. A source is `ok` when it returns without error AND finds >0 "
+        "results; Facebook shows status 'disabled' when ENABLE_FACEBOOK_SEARCH is unset "
+        "(not counted as a failure)."
+    ),
+)
+async def health_check() -> dict[str, Any]:
+    return await health.health_check()
 
 
 def main() -> None:

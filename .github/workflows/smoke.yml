@@ -1,0 +1,25 @@
+name: source-smoke-test
+
+# Catches source breakage proactively: runs weekly (and on demand) and fails —
+# emailing the repo owner — if a source stops returning data. Add TRADERA_APP_ID
+# and TRADERA_APP_KEY as repo secrets to include the Tradera check.
+on:
+  schedule:
+    - cron: "0 6 * * 1" # Mondays 06:00 UTC
+  workflow_dispatch:
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install
+        run: pip install -e ".[dev]"
+      - name: Run source smoke tests
+        env:
+          TRADERA_APP_ID: ${{ secrets.TRADERA_APP_ID }}
+          TRADERA_APP_KEY: ${{ secrets.TRADERA_APP_KEY }}
+        run: pytest -v tests/

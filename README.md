@@ -165,6 +165,7 @@ Both are tested live. If Tradera's shape ever drifts, the OpenAPI spec is at
 | `search_vinted(query, price_min?, price_max?)` | Search Vinted fashion listings |
 | `search_facebook_marketplace(...)` | Disabled by default (local-only) |
 | `search_all(query, blocket_category?, blocket_locations?, tradera_category_id?, price_min?, price_max?)` | Blocket + Tradera + Klaravik + Vinted in one call |
+| `health_check()` | Ping every source and report which are still fetching data |
 
 ## 📍 Geographic scope
 
