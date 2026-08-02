@@ -1,3 +1,3 @@
-"""Sverige Begagnad MCP — search Blocket & Tradera for second-hand items."""
+"""Sverige Begagnad MCP — search Swedish second-hand marketplaces (Blocket, Tradera, Klaravik, Vinted)."""
 
-__version__ = "0.2.0"
+__version__ = "0.3.0"
